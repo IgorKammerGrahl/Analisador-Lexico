@@ -33,22 +33,53 @@ class Automato {
 
 // Função para criar autômatos
 function criaAutomatos() {
-    // Autômato para palavras reservadas
+    // Autômato para palavras reservadas e operadores
     $palavrasReservadas = new Automato(
         'q0',
-        ['q2', 'q3', 'q4'], // Estados finais que indicam palavras reservadas
+        ['q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q90'], // Estados finais para palavras reservadas e WRITE
         [
-            'q0' => ['i' => 'q1', 'e' => 'q10', 'w' => 'q20'],
-            'q1' => ['f' => 'q2'],  // Reconhece "if"
-            'q10' => ['l' => 'q11'],
-            'q11' => ['s' => 'q12'],
-            'q12' => ['e' => 'q3'],  // Reconhece "else"
-            'q20' => ['h' => 'q21'],
-            'q21' => ['i' => 'q22'],
-            'q22' => ['l' => 'q23'],
-            'q23' => ['e' => 'q4'],  // Reconhece "while"
+            'q0' => [
+                'i' => 'q1', 'I' => 'q1', // "if" e "IF"
+                'e' => 'q10', 'E' => 'q10', // "else" e "ELSE"
+                'w' => 'q20', 'W' => 'q20', // Início de "while" e "WRITE"
+                'f' => 'q30', 'F' => 'q30', // "for" e "FOR"
+                'p' => 'q40', 'P' => 'q40', // "print" e "PRINT"
+                'v' => 'q50', 'V' => 'q50', // "var" e "VAR"
+                'r' => 'q60', 'R' => 'q60', // "read" e "READ"
+            ],
+            
+            'q1' => ['f' => 'q2', 'F' => 'q2'], // "if" e "IF"
+            
+            'q10' => ['l' => 'q11', 'L' => 'q11'],
+            'q11' => ['s' => 'q12', 'S' => 'q12'],
+            'q12' => ['e' => 'q3', 'E' => 'q3'], // "else" e "ELSE"
+            
+            'q20' => ['h' => 'q21', 'H' => 'q21', 'r' => 'q24', 'R' => 'q24'], // "while" segue este caminho
+            'q21' => ['i' => 'q22', 'I' => 'q22'],
+            'q22' => ['l' => 'q23', 'L' => 'q23'],
+            'q23' => ['e' => 'q4', 'E' => 'q4'], // Estado final para "while"
+    
+            'q24' => ['i' => 'q25', 'I' => 'q25'],
+            'q25' => ['t' => 'q26', 'T' => 'q26'],
+            'q26' => ['e' => 'q9', 'E' => 'q9'], // Estado final para "write"
+            
+            'q30' => ['o' => 'q31', 'O' => 'q31'],
+            'q31' => ['r' => 'q5', 'R' => 'q5'], // "for" e "FOR"
+            
+            'q40' => ['r' => 'q41', 'R' => 'q41'],
+            'q41' => ['i' => 'q42', 'I' => 'q42'],
+            'q42' => ['n' => 'q43', 'N' => 'q43'],
+            'q43' => ['t' => 'q6', 'T' => 'q6'], // "print" e "PRINT"
+            
+            'q50' => ['a' => 'q51', 'A' => 'q51'],
+            'q51' => ['r' => 'q7', 'R' => 'q7'], // "var" e "VAR"
+            
+            'q60' => ['e' => 'q61', 'E' => 'q61'],
+            'q61' => ['a' => 'q62', 'A' => 'q62'],
+            'q62' => ['d' => 'q8', 'D' => 'q8'], // "read" e "READ"
         ]
     );
+    
 
     // Autômato para identificadores
     $identificador = new Automato(
@@ -73,15 +104,16 @@ function criaAutomatos() {
     // Autômato para operadores e delimitadores
     $operadores = new Automato(
         'q0',
-        ['q1', 'q3', 'q120'],
+        ['q1', 'q3', 'q33', 'q100'],
         [
             'q0' => [
-                '==' => 'q120', '=' => 'q120', 
+                '==' => 'q100', 
+                '=' => 'q100', 
                 '+' => 'q1', '-' => 'q1', '*' => 'q1', '/' => 'q1', '%' => 'q1',
                 '(' => 'q1', ')' => 'q1', '[' => 'q1', ']' => 'q1', '{' => 'q1', '}' => 'q1', 
                 '.' => 'q1', ',' => 'q1', ';' => 'q1', '!' => 'q1'
             ],
-            'q120' => ['=' => 'q1']
+            'q100' => ['=' => 'q1']
         ]
     );
 
@@ -94,7 +126,7 @@ function criaAutomatos() {
 }
 
 // Função que realiza a análise léxica
-function lexer($sourceCode) {
+function analisadorLexico($sourceCode) {
     $tokens = [];
     $automatos = criaAutomatos();
     $length = strlen($sourceCode);
@@ -107,6 +139,7 @@ function lexer($sourceCode) {
     while ($i < $length) {
         $char = $sourceCode[$i];
 
+        // Ignora espaços e novas linhas
         if (ctype_space($char)) {
             if ($char === "\n") {
                 $linha++;
@@ -121,6 +154,7 @@ function lexer($sourceCode) {
         $word = '';
         $startColuna = $coluna;
 
+        // Tratamento de strings
         if ($char == '"') {
             $i++;
             $coluna++;
@@ -140,19 +174,47 @@ function lexer($sourceCode) {
             continue;
         }
 
+        // Verificar se é uma palavra alfabética
         if (ctype_alpha($char)) {
             while ($i < $length && ctype_alnum($sourceCode[$i])) {
                 $word .= $sourceCode[$i];
                 $i++;
                 $coluna++;
             }
-        } elseif (ctype_digit($char)) {
+
+            // Modificação importante: Verificar se a palavra é reservada antes de verificar se é um identificador
+            $found = false;
+            
+            // Tentar reconhecer como palavra reservada
+            if ($automatos['PALAVRARESERVADA']->executa($word)) {
+                $tokens[] = ['PALAVRARESERVADA', $word];
+                echo "Reconhecido como palavra reservada: $word\n"; // Depuração
+                $found = true;
+            } 
+            // Se não for uma palavra reservada, verificar se é um identificador
+            elseif ($automatos['IDENTIFICADOR']->executa($word)) {
+                $tokens[] = ['IDENTIFICADOR', $word];
+                echo "Reconhecido como identificador: $word\n"; // Depuração
+                $found = true;
+            }
+
+            // Se não foi reconhecido por nenhum autômato
+            if (!$found) {
+                throw new Exception("Erro léxico: token desconhecido '$word' na linha $linha, coluna $startColuna.");
+            }
+        } 
+        // Tratamento de números
+        elseif (ctype_digit($char)) {
             while ($i < $length && ctype_digit($sourceCode[$i])) {
                 $word .= $sourceCode[$i];
                 $i++;
                 $coluna++;
             }
-        } else {
+            $tokens[] = ['CONSTANTE', $word];
+            echo "Reconhecido como constante: $word\n"; // Depuração
+        } 
+        // Tratamento de operadores e símbolos
+        else {
             if ($char == '=') {
                 while ($i < $length && $sourceCode[$i] == '=') {
                     $word .= $sourceCode[$i];
@@ -164,30 +226,28 @@ function lexer($sourceCode) {
                 $i++;
                 $coluna++;
             }
-        }
 
-        $found = false;
-
-        foreach ($automatos as $token => $automato) {
-            if ($automato->executa($word)) {
-                $tokens[] = [$token, $word];
-                $found = true;
-                break;
+            $found = false;
+            foreach ($automatos as $token => $automato) {
+                if ($automato->executa($word)) {
+                    $tokens[] = [$token, $word];
+                    echo "Reconhecido como $token: $word\n"; // Depuração
+                    $found = true;
+                    break;
+                }
             }
-        }
 
-        if (!$found) {
-            throw new Exception("Erro léxico: token desconhecido '$word' na linha $linha, coluna $startColuna.");
+            if (!$found) {
+                throw new Exception("Erro léxico: token desconhecido '$word' na linha $linha, coluna $startColuna.");
+            }
         }
     }
 
     return $tokens;
 }
-
-// Executar a análise léxica e mostrar os resultados
 // Executar a análise léxica e mostrar os resultados
 try {
-    $tokens = lexer($codigo); // Certifique-se de que você está chamando a função correta
+    $tokens = analisadorLexico($codigo); // Certifique-se de que você está chamando a função correta
     echo "<h2>Tokens Encontrados:</h2><pre>";
     
     foreach ($tokens as $token) {
@@ -197,19 +257,52 @@ try {
             case 'PALAVRARESERVADA':
                 switch ($token[1]) {
                     case 'if':
-                        $descricao = 'Palavra Reservada: Condicional If';
+                        $descricao = 'Palavra Reservada: Condicional If: ' . $token[1];
+                        break;
+                    case 'IF':
+                        $descricao = 'Palavra Reservada: Condicional If: ' . $token[1];
                         break;
                     case 'else':
-                        $descricao = 'Palavra Reservada: Condicional Else';
+                        $descricao = 'Palavra Reservada: Condicional Else: ' . $token[1];
+                        break;
+                    case 'ELSE':
+                        $descricao = 'Palavra Reservada: Condicional Else: ' . $token[1];
                         break;
                     case 'while':
-                        $descricao = 'Palavra Reservada: Laço While';
+                        $descricao = 'Palavra Reservada: Laço While: ' . $token[1];
+                        break;
+                    case 'WHILE':
+                        $descricao = 'Palavra Reservada: Laço While: ' . $token[1];
                         break;
                     case 'for':
-                        $descricao = 'Palavra Reservada: Laço For';
+                        $descricao = 'Palavra Reservada: Laço For: ' . $token[1];
                         break;
-                    case 'function':
-                        $descricao = 'Palavra Reservada: Declaração de Função';
+                    case 'FOR':
+                        $descricao = 'Palavra Reservada: Laço For: ' . $token[1];
+                        break;
+                    case 'print':
+                        $descricao = 'Palavra Reservada: Imprima: ' . $token[1];
+                        break;
+                    case 'PRINT':
+                        $descricao = 'Palavra Reservada: Imprima: ' . $token[1];
+                        break;
+                    case 'var':
+                        $descricao = 'Palavra Reservada: Declaração de variável: ' . $token[1];
+                        break;
+                    case 'VAR':
+                        $descricao = 'Palavra Reservada: Declaração de variável: ' . $token[1];
+                        break;
+                    case 'read':
+                        $descricao = 'Palavra Reservada: Leia: ' . $token[1];
+                        break;
+                    case 'READ':
+                        $descricao = 'Palavra Reservada: Leia: ' . $token[1];
+                        break;
+                    case 'write':
+                        $descricao = 'Palavra Reservada: Escreva: ' . $token[1];
+                        break;
+                    case 'WRITE':
+                        $descricao = 'Palavra Reservada: Escreva: ' . $token[1];
                         break;
                     // Adicione mais palavras reservadas conforme necessário
                     default:

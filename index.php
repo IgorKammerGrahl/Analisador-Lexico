@@ -40,17 +40,18 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            resize: none; /* Desabilita redimensionamento */
+            resize: none; 
         }
 
         #status {
             background: #e9ecef;
+			height: 400px;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             max-height: 200px;
-            overflow: auto; /* Permite rolagem quando necessário */
-            white-space: pre-wrap; /* Mantém quebras de linha */
+            overflow: auto; 
+            white-space: pre-wrap; 
         }
 
         #controles {
@@ -69,7 +70,7 @@
         }
 
         #botao:hover {
-            background-color: #0056b3; /* Efeito hover */
+            background-color: #0056b3;
         }
     </style>
 </head>
