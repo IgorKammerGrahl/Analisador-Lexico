@@ -128,10 +128,11 @@ function criaAutomatos() {
 // Função que realiza a análise léxica
 function analisadorLexico($sourceCode) {
     $tokens = [];
+    $erros = []; // Array para armazenar os erros
     $automatos = criaAutomatos();
     $length = strlen($sourceCode);
     $i = 0;
-    
+
     // Iniciar contadores de linha e coluna
     $linha = 1;
     $coluna = 1;
@@ -169,7 +170,7 @@ function analisadorLexico($sourceCode) {
                 $i++;
                 $coluna++;
             } else {
-                throw new Exception("Erro léxico: string não terminada na linha $linha, coluna $coluna.");
+                $erros[] = "Erro léxico: string não terminada na linha $linha, coluna $coluna."; // Armazenar o erro
             }
             continue;
         }
@@ -182,25 +183,19 @@ function analisadorLexico($sourceCode) {
                 $coluna++;
             }
 
-            // Modificação importante: Verificar se a palavra é reservada antes de verificar se é um identificador
+            // Verificar se a palavra é reservada ou identificador
             $found = false;
-            
-            // Tentar reconhecer como palavra reservada
+
             if ($automatos['PALAVRARESERVADA']->executa($word)) {
                 $tokens[] = ['PALAVRARESERVADA', $word];
-                echo "Reconhecido como palavra reservada: $word\n"; // Depuração
                 $found = true;
-            } 
-            // Se não for uma palavra reservada, verificar se é um identificador
-            elseif ($automatos['IDENTIFICADOR']->executa($word)) {
+            } elseif ($automatos['IDENTIFICADOR']->executa($word)) {
                 $tokens[] = ['IDENTIFICADOR', $word];
-                echo "Reconhecido como identificador: $word\n"; // Depuração
                 $found = true;
             }
 
-            // Se não foi reconhecido por nenhum autômato
             if (!$found) {
-                throw new Exception("Erro léxico: token desconhecido '$word' na linha $linha, coluna $startColuna.");
+                $erros[] = "Erro léxico: token desconhecido '$word' na linha $linha, coluna $startColuna."; // Armazenar o erro
             }
         } 
         // Tratamento de números
@@ -211,7 +206,6 @@ function analisadorLexico($sourceCode) {
                 $coluna++;
             }
             $tokens[] = ['CONSTANTE', $word];
-            echo "Reconhecido como constante: $word\n"; // Depuração
         } 
         // Tratamento de operadores e símbolos
         else {
@@ -231,15 +225,20 @@ function analisadorLexico($sourceCode) {
             foreach ($automatos as $token => $automato) {
                 if ($automato->executa($word)) {
                     $tokens[] = [$token, $word];
-                    echo "Reconhecido como $token: $word\n"; // Depuração
                     $found = true;
                     break;
                 }
             }
 
             if (!$found) {
-                throw new Exception("Erro léxico: token desconhecido '$word' na linha $linha, coluna $startColuna.");
+                $erros[] = "Erro léxico: token desconhecido '$word' na linha $linha, coluna $startColuna."; // Armazenar o erro
             }
+        }
+    }
+
+    if (!empty($erros)) {
+        foreach ($erros as $erro) {
+            echo "$erro\n"; // Exibir todos os erros
         }
     }
 
@@ -376,7 +375,4 @@ try {
 } catch (Exception $e) {
     echo "<h2>Erro:</h2><pre>{$e->getMessage()}</pre>";
 }
-
-
-
 ?>
